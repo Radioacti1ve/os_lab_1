@@ -17,26 +17,26 @@ int create_process() {
 
 int main (int argc, char *argv[]) {
     
-    int fd1[2];
-    int fd2[2];
-    int fd3[2];
+    int pipe1[2];
+    int pipe2[2];
+    int pipe3[2];
 
-    if(pipe(fd1) == -1 || pipe(fd2) == -1 || pipe(fd3) == -1) {
-        write(STDERR_FILENO, "Pipe was not created", 20);
+    if(pipe(pipe1) == -1 || pipe(pipe2) == -1 || pipe(pipe3) == -1) {
+        write(STDERR_FILENO, "Pipe was not created", 21);
     }
     
     pid_t child = create_process();
     
     
     if(child == 0){
-        close(fd1[1]);
-        dup2(fd1[0], STDIN_FILENO);
+        close(pipe1[1]);
+        dup2(pipe1[0], STDIN_FILENO);
 
-        close(fd3[1]);
-        dup2(fd3[0], STDIN_FILENO);
+        close(pipe3[1]);
+        dup2(pipe3[0], STDIN_FILENO);
 
-        close(fd2[0]);
-        dup2(fd2[1], STDOUT_FILENO);
+        close(pipe2[0]);
+        dup2(pipe2[1], STDOUT_FILENO);
 
         execvp("./child", argv);
 
@@ -49,22 +49,20 @@ int main (int argc, char *argv[]) {
         ssize_t b2 = read(STDIN_FILENO, Stroka, sizeof(Stroka));
         Stroka[b2-1] = '\0';
 
-        close(fd1[0]);
-        write(fd1[1], FileName, sizeof(FileName));
-        close(fd1[1]);
+        close(pipe1[0]);
+        write(pipe1[1], FileName, sizeof(FileName));
+        close(pipe1[1]);
 
-        close(fd3[0]);
-        write(fd3[1], Stroka, sizeof(Stroka));
-        close(fd3[1]);
-
-        waitpid(child, NULL, WUNTRACED);
+        close(pipe3[0]);
+        write(pipe3[1], Stroka, sizeof(Stroka));
+        close(pipe3[1]);
 
         char answer[256];
-        close(fd2[1]);
-        read(fd2[0],answer, sizeof(answer));
-        close(fd2[0]);
+        close(pipe2[1]);
+        read(pipe2[0],answer, sizeof(answer));
+        close(pipe2[0]);
 
-        printf("%s\n", answer);
+        write(STDOUT_FILENO, answer, sizeof(answer));
     }
     return 0;
 }
