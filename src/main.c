@@ -1,68 +1,60 @@
-#include <stdio.h>
-#include <string.h>
 #include <unistd.h>
-#include <stdlib.h>
 #include <sys/wait.h>
-#include <sys/fcntl.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
 
-int create_process() {
-    pid_t new_procces = fork();
-    if( new_procces == -1) {
-        write(STDERR_FILENO, "fork", 5);
+int main() {
+    char FileName[256];
+    write(STDOUT_FILENO, "Введите имя файла для записи: ", 55);
+    read(STDIN_FILENO, FileName, 256);
+    FileName[strlen(FileName) - 1] = '\0'; 
+    int file = open(FileName, O_WRONLY, 0777); //0777 uses for permission
+    if(!file) {
+        write(STDERR_FILENO, "Opening error file", 19);
         exit(-1);
     }
 
-    return new_procces;
-}
+    int pipe1[2], pipe2[2];
+    pipe(pipe1);
+    pipe(pipe2);
 
-int main (int argc, char *argv[]) {
-    
-    int pipe1[2];
-    int pipe2[2];
-    int pipe3[2];
+    pid_t child_pid = fork();
 
-    if(pipe(pipe1) == -1 || pipe(pipe2) == -1 || pipe(pipe3) == -1) {
-        write(STDERR_FILENO, "Pipe was not created", 21);
-    }
-    
-    pid_t child = create_process();
-    
-    
-    if(child == 0){
-        close(pipe1[1]);
+    if (child_pid == 0) {
+        // Дочерний процесс
+        close(pipe1[1]); //na zapis
+        close(pipe2[0]); //na chtenie
+
         dup2(pipe1[0], STDIN_FILENO);
-
-        close(pipe3[1]);
-        dup2(pipe3[0], STDIN_FILENO);
-
-        close(pipe2[0]);
         dup2(pipe2[1], STDOUT_FILENO);
 
-        execvp("./child", argv);
-
+        execlp("./child", "./child", NULL);
+        _exit(1);
     } else {
-        char FileName[256];
-        ssize_t b1 = read(STDIN_FILENO, FileName, sizeof(FileName));
-        FileName[b1 - 1] = '\0';
-
-        char Stroka[256];
-        ssize_t b2 = read(STDIN_FILENO, Stroka, sizeof(Stroka));
-        Stroka[b2-1] = '\0';
-
+        // Родительский процесс
         close(pipe1[0]);
-        write(pipe1[1], FileName, sizeof(FileName));
-        close(pipe1[1]);
-
-        close(pipe3[0]);
-        write(pipe3[1], Stroka, sizeof(Stroka));
-        close(pipe3[1]);
-
-        char answer[256];
         close(pipe2[1]);
-        read(pipe2[0],answer, sizeof(answer));
+
+        char _String[256];
+        while (1) {
+            write(STDOUT_FILENO, "Введите строку: ", 30);
+            int bytesRead = read(STDIN_FILENO, _String, sizeof(_String));
+
+            write(pipe1[1], _String, bytesRead);
+
+            int bytesReadChild = read(pipe2[0], _String, sizeof(_String));
+            write(STDOUT_FILENO, "Строка удовлетворяет условию: ", 57);
+            write(STDOUT_FILENO, _String, bytesReadChild);
+        }
+
+        close(pipe1[1]);
         close(pipe2[0]);
 
-        write(STDOUT_FILENO, answer, sizeof(answer));
+        wait(NULL);
+        close(file);
     }
+
     return 0;
 }
