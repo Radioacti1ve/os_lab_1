@@ -38,21 +38,29 @@ int main() {
         close(pipe2[1]);
 
         char _String[256];
-        while (1) {
-            write(STDOUT_FILENO, "Введите строку: ", 30);
-            int bytesRead = read(STDIN_FILENO, _String, sizeof(_String));
 
-            write(pipe1[1], _String, bytesRead);
+        write(STDOUT_FILENO, "Введите строку: ", 30);
+        int bytesRead = read(STDIN_FILENO, _String, sizeof(_String));
 
-            int bytesReadChild = read(pipe2[0], _String, sizeof(_String));
+        write(pipe1[1], _String, bytesRead);
+            
+        int bytesReadChild = read(pipe2[0], _String, sizeof(_String));
+        
+        int status;
+        waitpid(0, &status, 0);
+
+        if(status != 0)
+            return -1;
+        else {   
             write(STDOUT_FILENO, "Строка удовлетворяет условию: ", 57);
             write(STDOUT_FILENO, _String, bytesReadChild);
+            write(STDOUT_FILENO, "\n", 2);
         }
 
         close(pipe1[1]);
         close(pipe2[0]);
 
-        wait(NULL);
+        
         close(file);
     }
 
