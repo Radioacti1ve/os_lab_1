@@ -10,7 +10,7 @@ int main() {
     write(STDOUT_FILENO, "Введите имя файла для записи: ", 55);
     read(STDIN_FILENO, FileName, 256);
     FileName[strlen(FileName) - 1] = '\0'; 
-    int file = open(FileName, O_WRONLY, 0777); //0777 uses for permission
+    int file = open(FileName, O_WRONLY); 
     if(!file) {
         write(STDERR_FILENO, "Opening error file", 19);
         exit(-1);
@@ -21,6 +21,12 @@ int main() {
     pipe(pipe2);
 
     pid_t child_pid = fork();
+    
+    if (child_pid == -1)
+    {
+        write(STDERR_FILENO, "fork", 5);
+        exit(-1);
+    }
 
     if (child_pid == 0) {
         // Дочерний процесс
@@ -32,7 +38,7 @@ int main() {
 
         execlp("./child", "./child", NULL);
         _exit(1);
-    } else {
+    } else if(child_pid > 0) {
         // Родительский процесс
         close(pipe1[0]);
         close(pipe2[1]);
